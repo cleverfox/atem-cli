@@ -1,0 +1,6 @@
+59;set prev 1
+60;set prev 2
+61;toggle dskey 1
+62;do trans
+63;toggle dskey 1;do cut
+
