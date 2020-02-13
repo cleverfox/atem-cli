@@ -58,14 +58,10 @@ void KBDReader::run(){
         break;
       }
     if (ev.type == EV_KEY && ev.value == 1){
-      //parse_commands();
-      printf("## keyboard button %d\n", (int)ev.code);
-
       QMap<int, QStringList>::iterator i = commands.find((int)ev.code);
       if(i!=commands.end()){
         QStringList::iterator l;
         for(l=(*i).begin();l!=(*i).end();l++){
-          qInfo() << (*l);
           emit cmdReady((*l).split(" "));
         }
       }
