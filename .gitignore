@@ -1,0 +1,8 @@
+*.o
+*~
+*.sqp
+*.swp
+moc_*
+atem-cli
+Makefile
+.qmake.stash
