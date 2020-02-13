@@ -28,8 +28,10 @@ along with atem-cli.  If not, see <http://www.gnu.org/licenses/>.
 #include "qatemtypes.h"
 #include "qatemmixeffect.h"
 #include "qatemconnection.h"
+#include "kbdreader.h"
 
 class QAtemConnection;
+
 
 class CLIReader : public QThread
 {
@@ -43,6 +45,7 @@ public:
 
 signals:
     void cmdReady(QStringList cmd);
+    void done();
 
 };
 
@@ -60,6 +63,8 @@ private:
     QAtemDownstreamKey *m_downstreamKey_1   = NULL;
     QAtemConnection *m_atemConnection       = NULL;
     CLIReader *reader                       = NULL;
+    KBDReader *kbd                          = NULL;
+    QString kbd_device;
     
     QList<quint16> aLvlUpdateList;
     
@@ -69,7 +74,7 @@ private:
     void connectMixEffectEvents();
     
 public:
-    CLIApp(QObject *parent = 0, QString address = QString("192.168.10.240")) : QObject(parent), qin(stdin), qout(stdout){ if(!atem_address.setAddress(address)){emit finished();} }
+    CLIApp(QObject *parent = 0, QString address = QString("192.168.10.240"), QString input_device=QString("")) : QObject(parent), qin(stdin), qout(stdout){ if(!atem_address.setAddress(address)){emit finished();}; kbd_device=input_device; }
     int currentAccess = 0;
     
     //void printStatus();
@@ -146,6 +151,7 @@ public:
     void setColorGeneratorColor(quint8 generator, quint8 red, quint8 green, quint8 blue);
     void setConnection(bool enable);
     void setDebug(bool enable);
+    void toggleDSKeyLive(quint8 keyer);
     void setDSKeyLive(quint8 keyer, bool enable); //0 = Off, 1 = On
     void setDSKeyAutoFrameRate(quint8 keyer, quint8 rate); //value 0-250
     void setDSKeyTie(quint8 keyer, bool enable); //0 = Off, 1 = On
@@ -179,6 +185,7 @@ public slots:
     void run();
     
     void processCmd(QStringList cmd);
+    void shutdown();
 
     // ATEM Slots
     void onAtemConnected();

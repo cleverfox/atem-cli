@@ -26,6 +26,8 @@ along with atem-cli.  If not, see <http://www.gnu.org/licenses/>.
 #include "qatemmixeffect.h"
 #include "qatemconnection.h"
 #include "qatemdownstreamkey.h"
+#include <stdlib.h>
+
 
 
 void CLIReader::run(){
@@ -35,12 +37,15 @@ void CLIReader::run(){
     while(true){
         
         line = qin->readLine();
-        emit cmdReady(line.split(" "));
-        
+        if(line.length()){
+          emit cmdReady(line.split(" "));
+        }else{
+          emit done();
+          return;
+        }
     }
     
 }
-
 
 void CLIApp::run(){
     
@@ -53,10 +58,23 @@ void CLIApp::run(){
     
     m_atemConnection->connectToSwitcher(atem_address);
     
+    if(kbd_device.length()){
+      qInfo() << "Starting keyboard reader from " << kbd_device;
+      //const char* kbddev="/dev/input/by-path/platform-1c1a400.usb-usb-0:1:1.2-event-kbd";
+      kbd = new KBDReader(this,kbd_device);
+      connect(kbd, SIGNAL(cmdReady(QStringList)), this, SLOT(processCmd(QStringList)));
+      kbd->start();
+    }
+
     reader = new CLIReader(this,&qin);
     connect(reader, SIGNAL(cmdReady(QStringList)), this, SLOT(processCmd(QStringList)));
+    connect(reader, SIGNAL(done()), this, SLOT(shutdown()));
     reader->start();
     
+}
+
+void CLIApp::shutdown(){
+  exit(0);
 }
 
 void CLIApp::processCmd(QStringList cmd){
@@ -524,6 +542,23 @@ void CLIApp::setConnection(bool enable){
 void CLIApp::setDebug(bool enable){
     m_atemConnection->setDebugEnabled(enable);
 }
+
+void CLIApp::toggleDSKeyLive(quint8 keyer){
+    if (keyer==0){
+        if(m_downstreamKey_0->onAir()){
+            m_downstreamKey_0->setOnAir(0);
+        } else {
+            m_downstreamKey_0->setOnAir(1);
+        }
+    } else if (keyer==1){
+        if(m_downstreamKey_1->onAir()){
+            m_downstreamKey_1->setOnAir(0);
+        } else {
+            m_downstreamKey_1->setOnAir(1);
+        }
+    }
+}
+
 
 void CLIApp::setDSKeyLive(quint8 keyer, bool enable){
     if (keyer==0){

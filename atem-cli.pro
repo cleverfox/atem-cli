@@ -8,10 +8,12 @@ CONFIG += console
 SOURCES += libqatemcontrol/*.cpp \
     main.cpp \
     cliapp.cpp \
+    kbdreader.cpp \
     cmddict.cpp
 
 HEADERS += libqatemcontrol/*.h \
     cliapp.h \
+    kbdreader.h \
     cmddict.h
 
 unix {

@@ -474,6 +474,12 @@ void CmdDict::preDSKeyLive(QStringList cmd){
         } else {
             app->setDSKeyLive((quint8)cmd[2].toInt(),(bool)cmd[3].toInt()); //0 = Off, 1 = On
         }
+    } else if(cmd[0].toUpper()=="TOGGLE"){
+        if(cmd.size()!= 3){
+            invalid(cmd);
+        } else {
+            app->toggleDSKeyLive((quint8)cmd[2].toInt()); //0 = Off, 1 = On
+        }
     } else {
         invalid(cmd);
     }

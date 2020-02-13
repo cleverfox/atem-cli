@@ -32,14 +32,18 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     QTextStream qout(stdout);
 
-    if (argc!=2){
-        qout << "Usage: atemcli [ip-address]" << endl;
+    if (argc<2){
+        qout << "Usage: atemcli ip-address [input device]" << endl;
         exit(0);
     }
     
     QString addr(argv[1]);
+    QString kbd("");
+    if(argc>2){
+      kbd=argv[2];
+    }
     
-    CLIApp *app = new CLIApp(&a,addr);
+    CLIApp *app = new CLIApp(&a,addr,kbd);
     QObject::connect(app, SIGNAL(finished()), &a, SLOT(quit()));
     QTimer::singleShot(0, app, SLOT(run()));
 
