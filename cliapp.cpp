@@ -40,8 +40,10 @@ void CLIReader::run(){
         if(line.length()){
           emit cmdReady(line.split(" "));
         }else{
-          emit done();
-          return;
+          if(qin->atEnd()){
+            emit done();
+            return;
+          }
         }
     }
     
@@ -90,7 +92,6 @@ void CLIApp::help(){
     qout << "\n"
     "        ~ CLI for Blackmagic ATEM Switchers ~\n"
     "   COMMAND        {PREFIXES}              ARGUMENTS\n"
-    "   ─────────────────────────────────────────────────────────\n"
     "   ACHNLS         {GET|HELP}\n"                                     //done
     "   AINBAL         {GET|SET}               INDEX BALANCE\n"     //done
     "   AINGAIN        {GET|SET}               INDEX GAIN\n"        //done
