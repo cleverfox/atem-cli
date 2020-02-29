@@ -9,11 +9,13 @@ SOURCES += libqatemcontrol/*.cpp \
     main.cpp \
     cliapp.cpp \
     kbdreader.cpp \
+    tcpkbd.cpp \
     cmddict.cpp
 
 HEADERS += libqatemcontrol/*.h \
     cliapp.h \
     kbdreader.h \
+    tcpkbd.h \
     cmddict.h
 
 unix {

@@ -29,6 +29,7 @@ along with atem-cli.  If not, see <http://www.gnu.org/licenses/>.
 #include "qatemmixeffect.h"
 #include "qatemconnection.h"
 #include "kbdreader.h"
+#include "tcpkbd.h"
 
 class QAtemConnection;
 
@@ -64,7 +65,9 @@ private:
     QAtemConnection *m_atemConnection       = NULL;
     CLIReader *reader                       = NULL;
     KBDReader *kbd                          = NULL;
+    TCPKbd *tcpkbd                          = NULL;
     QString kbd_device;
+    QString tcpkbd_address;
     
     QList<quint16> aLvlUpdateList;
     
@@ -74,7 +77,11 @@ private:
     void connectMixEffectEvents();
     
 public:
-    CLIApp(QObject *parent = 0, QString address = QString("192.168.10.240"), QString input_device=QString("")) : QObject(parent), qin(stdin), qout(stdout){ if(!atem_address.setAddress(address)){emit finished();}; kbd_device=input_device; }
+    CLIApp(QObject *parent = 0, QString address = QString("192.168.10.240"), QString input_device=QString(""), QString tcpkbdaddress = QString("192.168.2.8")) : QObject(parent), qin(stdin), qout(stdout){
+      if(!atem_address.setAddress(address)){emit finished();};
+      kbd_device=input_device;
+      tcpkbd_address=tcpkbdaddress;
+    }
     int currentAccess = 0;
     
     //void printStatus();
@@ -364,6 +371,7 @@ public slots:
     void onMixEffectUpstreamKeyDVEMaskRightChanged(quint8 me, quint8 keyer, float right);
 
 signals:
+    void atemConnected(QAtemConnection *atemconn);
     void finished();
 };
 

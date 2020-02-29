@@ -60,6 +60,14 @@ void CLIApp::run(){
     
     m_atemConnection->connectToSwitcher(atem_address);
     
+    if(tcpkbd_address.length()){
+      qInfo() << "Starting TCP keyboard reader from " << tcpkbd_address;
+      tcpkbd = new TCPKbd(this,tcpkbd_address);
+      connect(tcpkbd, SIGNAL(cmdReady(QStringList)), this, SLOT(processCmd(QStringList)));
+      connect(this, SIGNAL(atemConnected(QAtemConnection*)), tcpkbd, SLOT(onAtemConnected(QAtemConnection*)));
+      tcpkbd->run();
+
+    }
     if(kbd_device.length()){
       qInfo() << "Starting keyboard reader from " << kbd_device;
       //const char* kbddev="/dev/input/by-path/platform-1c1a400.usb-usb-0:1:1.2-event-kbd";
@@ -682,6 +690,7 @@ void CLIApp::onAtemConnected()
         connectDSKeyerEvents();
     }
     
+    emit atemConnected(m_atemConnection);
     qout << "Ready" << endl;
     
 }
@@ -1422,6 +1431,7 @@ void CLIApp::connectDSKeyerEvents()
     connect(m_downstreamKey_0, SIGNAL(enableMaskChanged(quint8, bool)), this, SLOT(onAtemDownstreamKeyEnableMaskChanged(quint8, bool)));
     connect(m_downstreamKey_0, SIGNAL(maskChanged(quint8, float, float, float, float)), this, SLOT(onAtemDownstreamKeyMaskChanged(quint8, float, float, float, float))); 
     
+
     connect(m_downstreamKey_1, SIGNAL(onAirChanged(quint8, bool)), this, SLOT(onAtemDownstreamKeyOnChanged(quint8, bool)));
     connect(m_downstreamKey_1, SIGNAL(tieChanged(quint8, bool)), this, SLOT(onAtemDownstreamKeyTieChanged(quint8, bool)));
     connect(m_downstreamKey_1, SIGNAL(frameCountChanged(quint8, quint8)), this, SLOT(onAtemDownstreamKeyFrameCountChanged(quint8, quint8)));
@@ -1433,11 +1443,19 @@ void CLIApp::connectDSKeyerEvents()
     connect(m_downstreamKey_1, SIGNAL(gainChanged(quint8, float)), this, SLOT(onAtemDownstreamKeyGainChanged(quint8, float)));
     connect(m_downstreamKey_1, SIGNAL(enableMaskChanged(quint8, bool)), this, SLOT(onAtemDownstreamKeyEnableMaskChanged(quint8, bool)));
     connect(m_downstreamKey_1, SIGNAL(maskChanged(quint8, float, float, float, float)), this, SLOT(onAtemDownstreamKeyMaskChanged(quint8, float, float, float, float))); 
+
+
+
+    connect(m_downstreamKey_0, SIGNAL(onAirChanged(quint8, bool)), tcpkbd, SLOT(syncled()));
+    connect(m_downstreamKey_1, SIGNAL(onAirChanged(quint8, bool)), tcpkbd, SLOT(syncled()));
 }
 
 void CLIApp::connectMixEffectEvents()
 {
     //Setup MixEffect event triggers
+    connect(m_mixEffect, SIGNAL(programInputChanged(quint8, quint16, quint16)), tcpkbd, SLOT(syncled()));
+    connect(m_mixEffect, SIGNAL(previewInputChanged(quint8, quint16, quint16)), tcpkbd, SLOT(syncled()));
+
     connect(m_mixEffect, SIGNAL(programInputChanged(quint8, quint16, quint16)), this, SLOT(onMixEffectProgramInputChanged(quint8, quint16, quint16)));
     connect(m_mixEffect, SIGNAL(previewInputChanged(quint8, quint16, quint16)), this, SLOT(onMixEffectPreviewInputChanged(quint8, quint16, quint16)));
 
