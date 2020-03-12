@@ -25,6 +25,7 @@ along with atem-cli.  If not, see <http://www.gnu.org/licenses/>.
 #include <QTextStream>
 #include <QHostAddress>
 #include <QTimer>
+#include <QTcpServer>
 #include "qatemtypes.h"
 #include "qatemmixeffect.h"
 #include "qatemconnection.h"
@@ -54,6 +55,8 @@ class CLIApp : public QObject
 {
     Q_OBJECT
 private:
+    QList<QTcpSocket*>  _sockets;
+    void notify(std::string str);
     bool reconnect = true;
     QTimer *quit_timer;
     QTextStream qin;
@@ -68,6 +71,7 @@ private:
     TCPKbd *tcpkbd                          = NULL;
     QString kbd_device;
     QString tcpkbd_address;
+    QTcpServer tcpserver;
     
     QList<quint16> aLvlUpdateList;
     
@@ -193,6 +197,10 @@ public slots:
     
     void processCmd(QStringList cmd);
     void shutdown();
+
+    void onNewTcpConnection();
+    void onTcpSocketStateChanged(QAbstractSocket::SocketState socketState);
+    void onTcpReadyRead();
 
     // ATEM Slots
     void onAtemConnected();

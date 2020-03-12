@@ -60,14 +60,15 @@ void CLIApp::run(){
     
     m_atemConnection->connectToSwitcher(atem_address);
     
+    /*
     if(tcpkbd_address.length()){
       qInfo() << "Starting TCP keyboard reader from " << tcpkbd_address;
       tcpkbd = new TCPKbd(this,tcpkbd_address);
       connect(tcpkbd, SIGNAL(cmdReady(QStringList)), this, SLOT(processCmd(QStringList)));
       connect(this, SIGNAL(atemConnected(QAtemConnection*)), tcpkbd, SLOT(onAtemConnected(QAtemConnection*)));
       tcpkbd->run();
-
     }
+    */
     if(kbd_device.length()){
       qInfo() << "Starting keyboard reader from " << kbd_device;
       //const char* kbddev="/dev/input/by-path/platform-1c1a400.usb-usb-0:1:1.2-event-kbd";
@@ -76,12 +77,55 @@ void CLIApp::run(){
       kbd->start();
     }
 
+    tcpserver.listen(QHostAddress::Any, 4242);
+    connect(&tcpserver, SIGNAL(newConnection()), this, SLOT(onNewTcpConnection()));
+
     reader = new CLIReader(this,&qin);
     connect(reader, SIGNAL(cmdReady(QStringList)), this, SLOT(processCmd(QStringList)));
     connect(reader, SIGNAL(done()), this, SLOT(shutdown()));
     reader->start();
     
 }
+
+void CLIApp::onNewTcpConnection() {
+   QTcpSocket *clientSocket = tcpserver.nextPendingConnection();
+   connect(clientSocket, SIGNAL(readyRead()), this, SLOT(onTcpReadyRead()));
+   connect(clientSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this, SLOT(onTcpSocketStateChanged(QAbstractSocket::SocketState)));
+
+    _sockets.push_back(clientSocket);
+    for (QTcpSocket* socket : _sockets) {
+        socket->write(QByteArray::fromStdString("READY\n"));
+    }
+}
+
+void CLIApp::onTcpSocketStateChanged(QAbstractSocket::SocketState socketState) {
+    if (socketState == QAbstractSocket::UnconnectedState)
+    {
+        QTcpSocket* sender = static_cast<QTcpSocket*>(QObject::sender());
+        _sockets.removeOne(sender);
+    }
+}
+
+void CLIApp::onTcpReadyRead() {
+    QTcpSocket* sender = static_cast<QTcpSocket*>(QObject::sender());
+    QByteArray datas = sender->readAll();
+    //processCmd(QStringList cmd);
+    processCmd(QString(datas).trimmed().split(" "));
+
+    /*
+    for (QTcpSocket* socket : _sockets) {
+        if (socket != sender)
+            socket->write(QByteArray::fromStdString(sender->peerAddress().toString().toStdString() + ": " + datas.toStdString()));
+    }
+    */
+}
+
+void CLIApp::notify(std::string str){
+  for (QTcpSocket* socket : _sockets) {
+    socket->write(QByteArray::fromStdString(str+"\n"));
+  }
+}
+
 
 void CLIApp::shutdown(){
   exit(0);
@@ -428,11 +472,11 @@ void CLIApp::getInputNameShort(quint16 input){
 
 
 void CLIApp::getPreview(){
-    qout << "PREV: " << m_mixEffect->previewInput()  << endl;
+  qout << "PREV: " << m_mixEffect->previewInput()  << endl;
 }
 
 void CLIApp::getProgram(){
-    qout << "PROG: " << m_mixEffect->programInput() << endl;
+  qout << "PROG: " << m_mixEffect->programInput() << endl;
 }
 
 void CLIApp::getTransitionCurrentKey(quint8 keyer){
@@ -698,10 +742,11 @@ void CLIApp::onAtemConnected()
 void CLIApp::onAtemDisconnected()
 {
     currentAccess = ENABLE_ALWAYS;
-    
+        
+    notify("DISCONNECT");
     if(!reconnect){
-        qout << "Disconnected" << endl;
-        return;
+      qout << "Disconnected" << endl;
+      return;
     }
     
     qout << "Disconnected ... Attempting Reconnect" << endl;
@@ -719,6 +764,7 @@ void CLIApp::onAtemSwitcherWarning(const QString &warningString){
 void CLIApp::onAtemTallyStatesChanged(){}
 
 void CLIApp::onAtemDownstreamKeyOnChanged(quint8 keyer, bool state){
+  notify("DSK: " + std::to_string(keyer) + ": " + (state?"true":"false"));
     qout << "DSKEY: [ " << keyer << " ] " << state << endl;
 }
 
@@ -910,12 +956,13 @@ void CLIApp::onAtemMacroRecordingStateChanged(bool recording, quint8 macroIndex)
 void CLIApp::onMixEffectProgramInputChanged(quint8 me, quint16 oldIndex, quint16 newIndex){
     Q_UNUSED(me)
     Q_UNUSED(oldIndex)
+    notify("PROG: " + std::to_string(m_mixEffect->programInput()));
     qout << "PROG: " << newIndex << endl;
-    
 }
 void CLIApp::onMixEffectPreviewInputChanged(quint8 me, quint16 oldIndex, quint16 newIndex){
     Q_UNUSED(me)
     Q_UNUSED(oldIndex)
+    notify("PREV: " + std::to_string(m_mixEffect->previewInput()));
     qout << "PREV: " << newIndex << endl;
 }
 
@@ -929,6 +976,7 @@ void CLIApp::onMixEffectTransitionFrameCountChanged(quint8 me, quint8 count){
 }
 void CLIApp::onMixEffectTransitionPositionChanged(quint8 me, quint16 count){
     Q_UNUSED(me)
+      notify("TPOS: " + std::to_string(count));
     qout << "TPOS: " << count << endl;
 }
 void CLIApp::onMixEffectNextTransitionStyleChanged(quint8 me, quint8 style){
@@ -1446,15 +1494,19 @@ void CLIApp::connectDSKeyerEvents()
 
 
 
+    /*
     connect(m_downstreamKey_0, SIGNAL(onAirChanged(quint8, bool)), tcpkbd, SLOT(syncled()));
     connect(m_downstreamKey_1, SIGNAL(onAirChanged(quint8, bool)), tcpkbd, SLOT(syncled()));
+    */
 }
 
 void CLIApp::connectMixEffectEvents()
 {
     //Setup MixEffect event triggers
+    /*
     connect(m_mixEffect, SIGNAL(programInputChanged(quint8, quint16, quint16)), tcpkbd, SLOT(syncled()));
     connect(m_mixEffect, SIGNAL(previewInputChanged(quint8, quint16, quint16)), tcpkbd, SLOT(syncled()));
+    */
 
     connect(m_mixEffect, SIGNAL(programInputChanged(quint8, quint16, quint16)), this, SLOT(onMixEffectProgramInputChanged(quint8, quint16, quint16)));
     connect(m_mixEffect, SIGNAL(previewInputChanged(quint8, quint16, quint16)), this, SLOT(onMixEffectPreviewInputChanged(quint8, quint16, quint16)));
