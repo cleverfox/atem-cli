@@ -110,7 +110,14 @@ void CLIApp::onTcpReadyRead() {
     QTcpSocket* sender = static_cast<QTcpSocket*>(QObject::sender());
     QByteArray datas = sender->readAll();
     //processCmd(QStringList cmd);
-    processCmd(QString(datas).trimmed().split(" "));
+    QString cmd=QString(datas).trimmed();
+    if(cmd=="status"){
+      notify("PROG: " + std::to_string(m_mixEffect->programInput()),sender);
+      notify("PREV: " + std::to_string(m_mixEffect->previewInput()),sender);
+      notify("DSK: 0: " + std::string(m_downstreamKey_0->onAir()?"true":"false"),sender);
+      notify("DSK: 1: " + std::string(m_downstreamKey_1->onAir()?"true":"false"),sender);
+    } else
+      processCmd(cmd.split(" "));
 
     /*
     for (QTcpSocket* socket : _sockets) {
@@ -118,6 +125,10 @@ void CLIApp::onTcpReadyRead() {
             socket->write(QByteArray::fromStdString(sender->peerAddress().toString().toStdString() + ": " + datas.toStdString()));
     }
     */
+}
+
+void CLIApp::notify(std::string str, QTcpSocket *s){
+  s->write(QByteArray::fromStdString(str+"\n"));
 }
 
 void CLIApp::notify(std::string str){

@@ -57,6 +57,7 @@ class CLIApp : public QObject
 private:
     QList<QTcpSocket*>  _sockets;
     void notify(std::string str);
+    void notify(std::string str, QTcpSocket *s);
     bool reconnect = true;
     QTimer *quit_timer;
     QTextStream qin;
